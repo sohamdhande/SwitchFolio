@@ -1,0 +1,14 @@
+{
+  "name": "@switchfolio/vanilla",
+  "version": "0.1.0",
+  "main": "dist/sdk.js",
+  "types": "dist/sdk.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/sdk.ts --format iife --globalName Switchfolio --dts"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

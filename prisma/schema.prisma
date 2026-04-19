@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String    @id @default(cuid())
+  clerkId   String    @unique
+  email     String    @unique
+  username  String    @unique
+  name      String?
+  views     View[]
+  projects  Project[]
+  apiKeys   ApiKey[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Project {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String            @db.Text
+  techStack   String[]
+  repoUrl     String?
+  liveUrl     String?
+  imageUrl    String?
+  views       ProjectsOnViews[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([userId])
+}
+
+model View {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug        String
+  name        String
+  description String?
+  projects    ProjectsOnViews[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([userId, slug])
+}
+
+model ProjectsOnViews {
+  projectId String
+  viewId    String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  view      View    @relation(fields: [viewId], references: [id], onDelete: Cascade)
+  isVisible Boolean @default(true)
+  lexoRank  String
+
+  @@id([projectId, viewId])
+  @@index([viewId, lexoRank])
+}
+
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  prefix     String    @unique
+  hashedKey  String
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
