@@ -27,7 +27,7 @@ export function ViewCard({
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <div className="space-y-1 pr-4">
           <CardTitle className="text-xl flex items-center gap-2">
-            <Layers className="h-5 w-5 text-gray-500" />
+            <Layers className="h-5 w-5 text-gray-500 dark:text-zinc-500" />
             {view.name}
           </CardTitle>
           <div className="text-sm text-muted-foreground font-mono">/{view.slug}</div>

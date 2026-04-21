@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ViewProject } from "@/types";
-import { midpoint } from "@/lib/lexorank";
+import { midpoint, LEXO_START, LEXO_END } from "@/lib/lexorank";
 import { SortableProjectRow } from "./SortableProjectRow";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -86,8 +86,8 @@ export function ViewProjectManager({
     const reordered = arrayMove(visibleProjects, oldIndex, newIndex);
 
     // Calculate new lexoRank for the moved item
-    const prevRank = reordered[newIndex - 1]?.lexoRank ?? "0";
-    const nextRank = reordered[newIndex + 1]?.lexoRank ?? "z";
+    const prevRank = reordered[newIndex - 1]?.lexoRank ?? LEXO_START;
+    const nextRank = reordered[newIndex + 1]?.lexoRank ?? LEXO_END;
     const newRank = midpoint(prevRank, nextRank);
 
     reordered[newIndex] = { ...reordered[newIndex], lexoRank: newRank };
@@ -109,8 +109,8 @@ export function ViewProjectManager({
             (vp) => vp.isVisible && vp.id !== id
           );
           const lastRank =
-            currentVisible[currentVisible.length - 1]?.lexoRank ?? "0";
-          const newRank = midpoint(lastRank, "z");
+            currentVisible[currentVisible.length - 1]?.lexoRank ?? LEXO_START;
+          const newRank = midpoint(lastRank, LEXO_END);
           return { ...p, isVisible: true, lexoRank: newRank };
         } else {
           return { ...p, isVisible: false };
@@ -135,8 +135,8 @@ export function ViewProjectManager({
         (vp) => vp.isVisible && vp.id !== id
       );
       const lastRank =
-        currentVisible[currentVisible.length - 1]?.lexoRank ?? "0";
-      const newRank = midpoint(lastRank, "z");
+        currentVisible[currentVisible.length - 1]?.lexoRank ?? LEXO_START;
+      const newRank = midpoint(lastRank, LEXO_END);
       saveUpdates([{ projectId: id, isVisible: true, lexoRank: newRank }]);
     } else {
       saveUpdates([{ projectId: id, isVisible: false }]);
@@ -155,10 +155,10 @@ export function ViewProjectManager({
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-zinc-100">
               {viewName}
             </h1>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-500 dark:text-zinc-500 text-sm mt-1">
               Toggle projects on/off and drag to reorder visible ones.
             </p>
           </div>
@@ -177,7 +177,7 @@ export function ViewProjectManager({
           Visible Projects ({visibleProjects.length})
         </h2>
         {visibleProjects.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 bg-white rounded-lg border border-dashed">
+          <div className="text-center py-8 text-gray-500 dark:text-zinc-500 bg-white dark:bg-zinc-900 rounded-lg border border-dashed">
             No visible projects. Toggle some on below.
           </div>
         ) : (

@@ -26,13 +26,20 @@ export const getOrCreateUser = async () => {
     throw new Error("No primary email address found for the user.");
   }
 
-  const username = user.username || primaryEmail.split('@')[0];
+  const baseUsername = user.username || primaryEmail.split('@')[0];
+  let finalUsername = baseUsername;
+  let counter = 1;
+
+  while (await db.user.findUnique({ where: { username: finalUsername } })) {
+    finalUsername = `${baseUsername}${counter}`;
+    counter++;
+  }
 
   const newDbUser = await db.user.create({
     data: {
       clerkId: user.id,
       email: primaryEmail,
-      username: username,
+      username: finalUsername,
       name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
     },
   });

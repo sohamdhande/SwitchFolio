@@ -103,7 +103,7 @@ export function ViewList({ views: initialViews }: { views: View[] }) {
       </div>
 
       {views.length === 0 ? (
-        <div className="text-center py-10 text-gray-500 bg-white rounded-lg border border-dashed">
+        <div className="text-center py-10 text-gray-500 dark:text-zinc-500 bg-white dark:bg-zinc-900 rounded-lg border border-dashed">
           No views found. Create a view to organize your projects!
         </div>
       ) : (

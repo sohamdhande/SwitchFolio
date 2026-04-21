@@ -33,14 +33,14 @@ export function SortableProjectRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 rounded-lg border bg-white px-4 py-3 ${
+      className={`flex items-center gap-3 rounded-lg border bg-white dark:bg-zinc-900 px-4 py-3 ${
         isDragging ? "shadow-lg ring-2 ring-primary/20" : ""
       } ${!project.isVisible ? "opacity-50" : ""}`}
     >
       {/* Drag handle — only interactive for visible projects */}
       {project.isVisible ? (
         <button
-          className="cursor-grab touch-none text-gray-400 hover:text-gray-600"
+          className="cursor-grab touch-none text-gray-400 hover:text-gray-600 dark:text-zinc-400"
           {...attributes}
           {...listeners}
         >

@@ -23,16 +23,16 @@ export default async function ViewDetailPage({
     redirect("/dashboard/views");
   }
 
-  // Fetch ALL user projects
-  const allProjects = await db.project.findMany({
-    where: { userId: user.id },
-    orderBy: { title: "asc" },
-  });
-
-  // Fetch all ProjectsOnViews records for this view
-  const projectsOnViews = await db.projectsOnViews.findMany({
-    where: { viewId: view.id },
-  });
+  // Fetch projects and view relationships in parallel
+  const [allProjects, projectsOnViews] = await Promise.all([
+    db.project.findMany({
+      where: { userId: user.id },
+      orderBy: { title: "asc" },
+    }),
+    db.projectsOnViews.findMany({
+      where: { viewId: view.id },
+    }),
+  ]);
 
   // Build a map for quick lookup
   const povMap = new Map(

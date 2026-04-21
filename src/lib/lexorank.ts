@@ -1,29 +1,43 @@
-export const LEXO_START = "m"
-export const LEXO_END = "z"
+const ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+export const LEXO_START = "0";
+export const LEXO_END = "z";
 
 export function midpoint(a: string, b: string): string {
-  // Pad to same length
-  const maxLen = Math.max(a.length, b.length) + 1
-  const A = a.padEnd(maxLen, '0')
-  const B = b.padEnd(maxLen, '0')
-
-  // Convert to char codes, find midpoint
-  const codes = []
-  for (let i = 0; i < maxLen; i++) {
-    const aCode = A.charCodeAt(i)
-    const bCode = B.charCodeAt(i)
-    codes.push(Math.floor((aCode + bCode) / 2))
+  if (a >= b) {
+    throw new Error(`Invalid inputs: a (${a}) must be strictly less than b (${b})`);
   }
 
-  return codes.map(c => String.fromCharCode(c)).join('').trimEnd()
+  let result = "";
+  let i = 0;
+  
+  while (true) {
+    const charA = a[i];
+    const charB = b[i];
+    
+    const indexA = charA !== undefined ? ALPHABET.indexOf(charA) : -1;
+    const indexB = charB !== undefined ? ALPHABET.indexOf(charB) : ALPHABET.length;
+    
+    if (indexB - indexA > 1) {
+      const midIndex = Math.floor((indexA + indexB) / 2);
+      result += ALPHABET[midIndex];
+      return result;
+    } else if (indexB - indexA === 1) {
+      result += ALPHABET[Math.max(0, indexA)];
+    } else {
+      result += ALPHABET[indexA];
+    }
+    i++;
+    if (i > 30) throw new Error("LexoRank exhaustion: could not find midpoint.");
+  }
 }
 
 export function generateInitialRanks(count: number): string[] {
-  if (count === 0) return []
-  const ranks: string[] = []
-  const step = Math.floor(('z'.charCodeAt(0) - '0'.charCodeAt(0)) / (count + 1))
+  if (count === 0) return [];
+  const ranks: string[] = [];
+  const step = Math.floor(ALPHABET.length / (count + 1));
   for (let i = 1; i <= count; i++) {
-    ranks.push(String.fromCharCode('0'.charCodeAt(0) + step * i))
+    ranks.push(ALPHABET[step * i]);
   }
-  return ranks
+  return ranks;
 }

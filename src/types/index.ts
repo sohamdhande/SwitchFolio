@@ -11,6 +11,15 @@ export type Project = {
   updatedAt: Date
 }
 
+export type ProjectFormData = {
+  title: string
+  description: string
+  techStack: string[]
+  repoUrl?: string | null
+  liveUrl?: string | null
+  imageUrl?: string | null
+}
+
 export type View = {
   id: string
   userId: string

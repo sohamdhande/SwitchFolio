@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   FolderOpen,
   BookOpen,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -24,7 +25,7 @@ export function ApiKeyPanel({
   user,
   initialKeys,
 }: {
-  user: { id: string; username: string; email: string };
+  user: { id: string; username: string; email: string; createdAt: string };
   initialKeys: ApiKey[];
 }) {
   const [keys, setKeys] = useState<ApiKey[]>(initialKeys);
@@ -32,6 +33,7 @@ export function ApiKeyPanel({
   const [loading, setLoading] = useState(false);
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [usernameCopied, setUsernameCopied] = useState(false);
   const [snippetTab, setSnippetTab] = useState<"react" | "vanilla">("react");
   const [snippetCopied, setSnippetCopied] = useState(false);
 
@@ -116,6 +118,13 @@ return data.map(project => (
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyUsername = async () => {
+    await navigator.clipboard.writeText(user.username);
+    setUsernameCopied(true);
+    toast.success("Username copied!");
+    setTimeout(() => setUsernameCopied(false), 2000);
+  };
+
   const handleCopySnippet = async () => {
     const text = snippetTab === "react" ? reactSnippet : vanillaSnippet;
     await navigator.clipboard.writeText(text);
@@ -132,6 +141,11 @@ return data.map(project => (
     });
   };
 
+  const memberSince = new Date(user.createdAt).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <div className="space-y-8">
       {/* PROFILE SECTION */}
@@ -144,11 +158,31 @@ return data.map(project => (
             <Label className="text-xs text-muted-foreground">
               Your username
             </Label>
-            <p className="font-mono text-sm font-medium">{user.username}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="font-mono text-sm font-medium">{user.username}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={handleCopyUsername}
+              >
+                {usernameCopied ? (
+                  <Check className="h-3.5 w-3.5 text-green-600" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Email</Label>
             <p className="text-sm">{user.email}</p>
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">
+              Member since
+            </Label>
+            <p className="text-sm">{memberSince}</p>
           </div>
         </CardContent>
       </Card>
@@ -190,7 +224,7 @@ return data.map(project => (
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <code className="flex-1 rounded-md bg-white border px-3 py-2 text-xs font-mono text-gray-900 break-all">
+                <code className="flex-1 rounded-md bg-white dark:bg-zinc-900 border px-3 py-2 text-xs font-mono text-gray-900 dark:text-zinc-100 break-all">
                   {newlyCreatedKey}
                 </code>
                 <Button variant="outline" size="sm" onClick={handleCopy}>
@@ -265,25 +299,24 @@ return data.map(project => (
           <div className="grid gap-3 sm:grid-cols-3">
             <Link
               href="/dashboard/views"
-              className="flex items-center gap-3 rounded-lg border p-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 rounded-lg border p-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-zinc-950 transition-colors"
             >
-              <LayoutGrid className="h-5 w-5 text-gray-500" />
+              <LayoutGrid className="h-5 w-5 text-gray-500 dark:text-zinc-500" />
               View your views
             </Link>
             <Link
               href="/dashboard/projects"
-              className="flex items-center gap-3 rounded-lg border p-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 rounded-lg border p-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-zinc-950 transition-colors"
             >
-              <FolderOpen className="h-5 w-5 text-gray-500" />
+              <FolderOpen className="h-5 w-5 text-gray-500 dark:text-zinc-500" />
               Manage projects
             </Link>
             <Link
-              href="/api/v1/projects"
-              target="_blank"
-              className="flex items-center gap-3 rounded-lg border p-3 text-sm font-medium hover:bg-gray-50 transition-colors"
+              href="/guide"
+              className="flex items-center gap-3 rounded-lg border p-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-zinc-950 transition-colors"
             >
-              <BookOpen className="h-5 w-5 text-gray-500" />
-              API docs
+              <BookOpen className="h-5 w-5 text-gray-500 dark:text-zinc-500" />
+              Documentation
             </Link>
           </div>
         </CardContent>
@@ -301,8 +334,8 @@ return data.map(project => (
               onClick={() => { setSnippetTab("react"); setSnippetCopied(false); }}
               className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
                 snippetTab === "react"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  ? "border-gray-900 text-gray-900 dark:border-zinc-100 dark:text-zinc-100"
+                  : "border-transparent text-gray-500 dark:text-zinc-500 hover:text-gray-700"
               }`}
             >
               React
@@ -311,8 +344,8 @@ return data.map(project => (
               onClick={() => { setSnippetTab("vanilla"); setSnippetCopied(false); }}
               className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
                 snippetTab === "vanilla"
-                  ? "border-gray-900 text-gray-900"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
+                  ? "border-gray-900 text-gray-900 dark:border-zinc-100 dark:text-zinc-100"
+                  : "border-transparent text-gray-500 dark:text-zinc-500 hover:text-gray-700"
               }`}
             >
               Vanilla JS
@@ -321,7 +354,7 @@ return data.map(project => (
 
           {/* Snippet */}
           <div className="relative">
-            <pre className="rounded-lg bg-gray-950 text-gray-100 p-4 text-sm font-mono overflow-x-auto">
+            <pre className="rounded-lg bg-gray-950 dark:bg-zinc-950 text-gray-100 dark:text-zinc-300 p-4 text-sm font-mono overflow-x-auto">
               <code>
                 {snippetTab === "react" ? reactSnippet : vanillaSnippet}
               </code>
@@ -344,6 +377,41 @@ return data.map(project => (
             Replace the API key with your full key and the view slug with your
             actual view.
           </p>
+        </CardContent>
+      </Card>
+
+      {/* DANGER ZONE */}
+      <Card className="border-red-300 dark:border-red-500/30">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+            <ShieldAlert className="h-5 w-5" />
+            Danger Zone
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-zinc-100">
+                Delete Account
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Permanently delete your account and all associated data.
+              </p>
+            </div>
+            <div className="relative group">
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled
+                className="opacity-50 cursor-not-allowed"
+              >
+                Delete Account
+              </Button>
+              <div className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-zinc-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+                Coming soon
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
