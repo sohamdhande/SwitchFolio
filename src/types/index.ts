@@ -50,4 +50,4 @@ export type ApiKey = {
   createdAt: Date
 }
 
-export type ApiKeyWithRaw = ApiKey & { raw: string }
+
