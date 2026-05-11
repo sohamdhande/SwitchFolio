@@ -1,6 +1,21 @@
 import { NextResponse } from "next/server";
 import { getOrCreateUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { createProjectSchema, parseBody } from "@/lib/validators";
+import { logAudit } from "@/lib/audit";
+
+const projectSelect = {
+  id: true,
+  userId: true,
+  title: true,
+  description: true,
+  techStack: true,
+  repoUrl: true,
+  liveUrl: true,
+  imageUrl: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 export async function GET() {
   try {
@@ -11,12 +26,9 @@ export async function GET() {
     }
 
     const projects = await db.project.findMany({
-      where: {
-        userId: user.id,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
+      where: { userId: user.id },
+      select: projectSelect,
+      orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json(projects);
@@ -34,23 +46,38 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { title, description, techStack, repoUrl, liveUrl, imageUrl } = body;
-
-    if (!title || !description) {
-      return NextResponse.json({ error: "Title and description are required" }, { status: 400 });
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
+
+    const parsed = parseBody(createProjectSchema, body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
+    const { title, description, techStack, repoUrl, liveUrl, imageUrl } = parsed.data;
 
     const newProject = await db.project.create({
       data: {
         userId: user.id,
         title,
         description,
-        techStack: techStack || [],
-        repoUrl: repoUrl || null,
-        liveUrl: liveUrl || null,
-        imageUrl: imageUrl || null,
+        techStack,
+        repoUrl,
+        liveUrl,
+        imageUrl,
       },
+      select: projectSelect,
+    });
+
+    logAudit({
+      userId: user.id,
+      action: "project.created",
+      resource: "Project",
+      resourceId: newProject.id,
     });
 
     return NextResponse.json(newProject, { status: 201 });

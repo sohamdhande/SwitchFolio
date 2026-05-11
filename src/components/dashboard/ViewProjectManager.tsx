@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ViewProject } from "@/types";
-import { midpoint, LEXO_START, LEXO_END } from "@/lib/lexorank";
+import { midpoint, needsRebalance, LEXO_START, LEXO_END } from "@/lib/lexorank";
 import { SortableProjectRow } from "./SortableProjectRow";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -45,6 +45,28 @@ export function ViewProjectManager({
 
   const visibleProjects = projects.filter((p) => p.isVisible);
   const hiddenProjects = projects.filter((p) => !p.isVisible);
+
+  const triggerRebalance = async () => {
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/views/${viewId}/rebalance`, {
+        method: "PATCH",
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to rebalance ranks");
+      }
+
+      // Reload to get fresh, evenly spaced ranks from the server
+      window.location.reload();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to rebalance"
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const saveUpdates = async (
     updates: Array<{
@@ -89,6 +111,14 @@ export function ViewProjectManager({
     const prevRank = reordered[newIndex - 1]?.lexoRank ?? LEXO_START;
     const nextRank = reordered[newIndex + 1]?.lexoRank ?? LEXO_END;
     const newRank = midpoint(prevRank, nextRank);
+
+    // Detect rank exhaustion: if the new rank isn't strictly between
+    // its neighbors, the rank space is too dense — trigger a rebalance
+    if (needsRebalance(newRank, prevRank, nextRank)) {
+      toast.info("Rank space exhausted — rebalancing all projects...");
+      triggerRebalance();
+      return;
+    }
 
     reordered[newIndex] = { ...reordered[newIndex], lexoRank: newRank };
 

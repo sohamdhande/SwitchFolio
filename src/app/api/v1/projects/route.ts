@@ -13,34 +13,47 @@ const ratelimit = process.env.UPSTASH_REDIS_REST_URL
     })
   : null;
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET",
-  "Access-Control-Allow-Headers": "Authorization, Content-Type",
-};
+function corsHeaders(origin?: string): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": origin ?? "",
+    "Access-Control-Allow-Methods": "GET",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+  };
+}
 
-export async function OPTIONS() {
-  return new NextResponse(null, { status: 200, headers: corsHeaders });
+export async function OPTIONS(req: Request) {
+  const origin = req.headers.get("Origin") ?? "*";
+  return new NextResponse(null, { status: 200, headers: corsHeaders(origin) });
 }
 
 export async function GET(req: Request) {
+  const requestOrigin = req.headers.get("Origin") ?? "";
+
   try {
     // 1. Extract and validate API key
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
         { error: "Invalid API key" },
-        { status: 401, headers: corsHeaders }
+        { status: 401, headers: corsHeaders(requestOrigin) }
       );
     }
 
     const rawKey = authHeader.replace("Bearer ", "");
-    const keyUserId = await validateApiKey(rawKey);
+    const keyResult = await validateApiKey(rawKey);
 
-    if (!keyUserId) {
+    if (!keyResult) {
       return NextResponse.json(
         { error: "Invalid API key" },
-        { status: 401, headers: corsHeaders }
+        { status: 401, headers: corsHeaders(requestOrigin) }
+      );
+    }
+
+    // 3. Enforce API key permissions
+    if (!keyResult.permissions.includes("read:projects")) {
+      return NextResponse.json(
+        { error: "Insufficient permissions: read:projects required" },
+        { status: 403, headers: corsHeaders(requestOrigin) }
       );
     }
 
@@ -51,7 +64,7 @@ export async function GET(req: Request) {
       if (!success) {
         return NextResponse.json(
           { error: "Rate limit exceeded. Try again shortly." },
-          { status: 429, headers: corsHeaders }
+          { status: 429, headers: corsHeaders(requestOrigin) }
         );
       }
     }
@@ -64,29 +77,48 @@ export async function GET(req: Request) {
     if (!username || !viewSlug) {
       return NextResponse.json(
         { error: "Missing required query params: user, view" },
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders(requestOrigin) }
       );
     }
 
     // 4. Look up user by username
     const user = await db.user.findUnique({
       where: { username },
+      select: { id: true, allowedOrigins: true },
     });
 
     if (!user) {
       return NextResponse.json(
         { error: "User not found" },
-        { status: 404, headers: corsHeaders }
+        { status: 404, headers: corsHeaders(requestOrigin) }
       );
     }
 
     // 5. Verify API key belongs to this user
-    if (keyUserId !== user.id) {
+    if (keyResult.userId !== user.id) {
       return NextResponse.json(
         { error: "Forbidden" },
-        { status: 403, headers: corsHeaders }
+        { status: 403, headers: corsHeaders(requestOrigin) }
       );
     }
+
+    // 9. CORS lockdown — check Origin against user's allowedOrigins
+    if (
+      user.allowedOrigins.length > 0 &&
+      requestOrigin &&
+      !user.allowedOrigins.includes(requestOrigin)
+    ) {
+      return NextResponse.json(
+        { error: "Origin not allowed" },
+        { status: 403, headers: corsHeaders() }
+      );
+    }
+
+    // Resolve the allowed origin for response headers
+    const resolvedOrigin =
+      user.allowedOrigins.length > 0
+        ? requestOrigin || user.allowedOrigins[0]
+        : "*";
 
     // 6. Find the view
     const view = await db.view.findUnique({
@@ -96,7 +128,7 @@ export async function GET(req: Request) {
     if (!view) {
       return NextResponse.json(
         { error: "View not found" },
-        { status: 404, headers: corsHeaders }
+        { status: 404, headers: corsHeaders(resolvedOrigin) }
       );
     }
 
@@ -107,7 +139,7 @@ export async function GET(req: Request) {
       orderBy: { lexoRank: "asc" },
     });
 
-    // 8. Map to clean response shape
+    // 8. Map to clean response shape — no internal fields leak
     const projects = projectsOnViews.map((pov) => ({
       id: pov.project.id,
       title: pov.project.title,
@@ -121,7 +153,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(projects, {
       headers: {
-        ...corsHeaders,
+        ...corsHeaders(resolvedOrigin),
         "Cache-Control":
           "public, s-maxage=3600, stale-while-revalidate=86400",
       },
@@ -130,8 +162,7 @@ export async function GET(req: Request) {
     console.error("GET /api/v1/projects error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: corsHeaders(requestOrigin) }
     );
   }
 }
-

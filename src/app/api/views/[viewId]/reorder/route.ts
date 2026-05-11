@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { getOrCreateUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { reorderUpdateSchema, parseBody } from "@/lib/validators";
+
+interface UpsertUpdatePayload {
+  lexoRank?: string;
+  isVisible?: boolean;
+}
+
+interface UpsertCreatePayload {
+  projectId: string;
+  viewId: string;
+  lexoRank: string;
+  isVisible: boolean;
+}
 
 export async function PATCH(
   req: Request,
@@ -18,53 +31,52 @@ export async function PATCH(
     // Verify view belongs to user
     const view = await db.view.findUnique({
       where: { id: viewId },
+      select: { id: true, userId: true },
     });
 
     if (!view || view.userId !== user.id) {
       return NextResponse.json({ error: "View not found" }, { status: 404 });
     }
 
-    const body = await req.json();
-    const { updates } = body as {
-      updates: Array<{
-        projectId: string;
-        lexoRank?: string;
-        isVisible?: boolean;
-      }>;
-    };
-
-    if (!updates || !Array.isArray(updates)) {
-      return NextResponse.json({ error: "updates array is required" }, { status: 400 });
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    // Process each update
-    for (const update of updates) {
-      const { projectId, lexoRank, isVisible } = update;
-
-      const updateData: Record<string, unknown> = {};
-      const createData: Record<string, unknown> = {
-        projectId,
-        viewId,
-        lexoRank: lexoRank ?? "m",
-        isVisible: isVisible ?? true,
-      };
-
-      if (lexoRank !== undefined) updateData.lexoRank = lexoRank;
-      if (isVisible !== undefined) updateData.isVisible = isVisible;
-
-      await db.projectsOnViews.upsert({
-        where: {
-          projectId_viewId: { projectId, viewId },
-        },
-        update: updateData,
-        create: createData as {
-          projectId: string;
-          viewId: string;
-          lexoRank: string;
-          isVisible: boolean;
-        },
-      });
+    const parsed = parseBody(reorderUpdateSchema, body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
+
+    const { updates } = parsed.data;
+
+    // Batch all upserts into a single atomic transaction
+    await db.$transaction(
+      updates.map((update) => {
+        const { projectId, lexoRank, isVisible } = update;
+
+        const updateData: UpsertUpdatePayload = {};
+        if (lexoRank !== undefined) updateData.lexoRank = lexoRank;
+        if (isVisible !== undefined) updateData.isVisible = isVisible;
+
+        const createData: UpsertCreatePayload = {
+          projectId,
+          viewId,
+          lexoRank: lexoRank ?? "m",
+          isVisible: isVisible ?? true,
+        };
+
+        return db.projectsOnViews.upsert({
+          where: {
+            projectId_viewId: { projectId, viewId },
+          },
+          update: updateData,
+          create: createData,
+        });
+      })
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

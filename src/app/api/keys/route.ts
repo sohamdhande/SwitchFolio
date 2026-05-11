@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getOrCreateUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateApiKey } from "@/lib/api-key";
+import { createApiKeySchema, parseBody } from "@/lib/validators";
+import { logAudit } from "@/lib/audit";
 
 export async function GET() {
   try {
@@ -17,6 +19,8 @@ export async function GET() {
         id: true,
         name: true,
         prefix: true,
+        permissions: true,
+        expiresAt: true,
         lastUsedAt: true,
         createdAt: true,
       },
@@ -38,14 +42,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { name } = body;
-
-    if (!name) {
-      return NextResponse.json({ error: "Name is required" }, { status: 400 });
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { raw, prefix, hashed } = generateApiKey();
+    const parsed = parseBody(createApiKeySchema, body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
+    const { name, permissions, expiresAt } = parsed.data;
+    const { raw, prefix, hashed } = await generateApiKey({ permissions, expiresAt });
 
     const key = await db.apiKey.create({
       data: {
@@ -53,14 +63,25 @@ export async function POST(req: Request) {
         name,
         prefix,
         hashedKey: hashed,
+        permissions,
+        expiresAt,
       },
       select: {
         id: true,
         name: true,
         prefix: true,
+        permissions: true,
+        expiresAt: true,
         lastUsedAt: true,
         createdAt: true,
       },
+    });
+
+    logAudit({
+      userId: user.id,
+      action: "api_key.created",
+      resource: "ApiKey",
+      resourceId: key.id,
     });
 
     // Return with raw key — only time it's ever exposed

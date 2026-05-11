@@ -16,6 +16,8 @@ export default async function SettingsPage() {
       id: true,
       name: true,
       prefix: true,
+      permissions: true,
+      expiresAt: true,
       lastUsedAt: true,
       createdAt: true,
     },

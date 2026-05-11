@@ -1,7 +1,7 @@
 /**
  * Environment variable validation.
  * Imported by db.ts so it runs on server startup.
- * In production, throws if any required var is missing.
+ * Throws if any required var is missing in any environment.
  */
 
 const requiredEnvVars = [
@@ -10,13 +10,11 @@ const requiredEnvVars = [
   "CLERK_SECRET_KEY",
 ] as const;
 
-if (process.env.NODE_ENV === "production") {
-  const missing = requiredEnvVars.filter((key) => !process.env[key]);
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(", ")}`
-    );
-  }
+const missing = requiredEnvVars.filter((key) => !process.env[key]);
+if (missing.length > 0) {
+  throw new Error(
+    `Missing required environment variables: ${missing.join(", ")}`
+  );
 }
 
 export const env = {

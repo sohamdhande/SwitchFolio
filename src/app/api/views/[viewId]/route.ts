@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { getOrCreateUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { updateViewSchema, parseBody } from "@/lib/validators";
+import { logAudit } from "@/lib/audit";
+
+const viewSelect = {
+  id: true,
+  userId: true,
+  slug: true,
+  name: true,
+  description: true,
+  createdAt: true,
+  updatedAt: true,
+  _count: { select: { projects: true } },
+} as const;
 
 export async function PUT(
   req: Request,
@@ -13,51 +26,57 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const parsed = parseBody(updateViewSchema, body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+
     const viewId = params.viewId;
-    const body = await req.json();
-    const { name, description } = body;
-    let { slug } = body;
 
     const existingView = await db.view.findUnique({
-      where: {
-        id: viewId,
-      },
+      where: { id: viewId },
+      select: { id: true, userId: true, slug: true, name: true, description: true },
     });
 
     if (!existingView || existingView.userId !== user.id) {
       return NextResponse.json({ error: "View not found or unauthorized" }, { status: 404 });
     }
 
+    const { name, slug, description } = parsed.data;
+
     if (slug && slug !== existingView.slug) {
       // Check if new slug is already taken
       const duplicateSlug = await db.view.findFirst({
-        where: {
-          userId: user.id,
-          slug: slug,
-        },
+        where: { userId: user.id, slug },
       });
 
       if (duplicateSlug) {
         return NextResponse.json({ error: "A view with this slug already exists." }, { status: 409 });
       }
-    } else if (!slug) {
-      slug = existingView.slug;
     }
 
     const updatedView = await db.view.update({
-      where: {
-        id: viewId,
-      },
+      where: { id: viewId },
       data: {
         name: name || existingView.name,
         description: description !== undefined ? description : existingView.description,
-        slug,
+        slug: slug || existingView.slug,
       },
-      include: {
-        _count: {
-          select: { projects: true },
-        },
-      },
+      select: viewSelect,
+    });
+
+    logAudit({
+      userId: user.id,
+      action: "view.updated",
+      resource: "View",
+      resourceId: viewId,
     });
 
     return NextResponse.json(updatedView);
@@ -81,9 +100,8 @@ export async function DELETE(
     const viewId = params.viewId;
 
     const existingView = await db.view.findUnique({
-      where: {
-        id: viewId,
-      },
+      where: { id: viewId },
+      select: { id: true, userId: true },
     });
 
     if (!existingView || existingView.userId !== user.id) {
@@ -91,9 +109,14 @@ export async function DELETE(
     }
 
     await db.view.delete({
-      where: {
-        id: viewId,
-      },
+      where: { id: viewId },
+    });
+
+    logAudit({
+      userId: user.id,
+      action: "view.deleted",
+      resource: "View",
+      resourceId: viewId,
     });
 
     return new NextResponse(null, { status: 204 });

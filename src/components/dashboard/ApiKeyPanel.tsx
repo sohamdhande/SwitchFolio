@@ -81,6 +81,8 @@ return data.map(project => (
           id: data.id,
           name: data.name,
           prefix: data.prefix,
+          permissions: data.permissions ?? [],
+          expiresAt: data.expiresAt ?? null,
           lastUsedAt: data.lastUsedAt,
           createdAt: data.createdAt,
         },

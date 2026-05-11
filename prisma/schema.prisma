@@ -8,16 +8,18 @@ datasource db {
 }
 
 model User {
-  id        String    @id @default(cuid())
-  clerkId   String    @unique
-  email     String    @unique
-  username  String    @unique
-  name      String?
-  views     View[]
-  projects  Project[]
-  apiKeys   ApiKey[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id             String    @id @default(cuid())
+  clerkId        String    @unique
+  email          String    @unique
+  username       String    @unique
+  name           String?
+  allowedOrigins String[]  @default([])
+  views          View[]
+  projects       Project[]
+  apiKeys        ApiKey[]
+  auditLogs      AuditLog[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model Project {
@@ -64,12 +66,29 @@ model ProjectsOnViews {
 }
 
 model ApiKey {
-  id         String    @id @default(cuid())
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  prefix      String    @unique
+  hashedKey   String
+  permissions String[]  @default(["read:projects", "read:views"])
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
   userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name       String
-  prefix     String    @unique
-  hashedKey  String
-  lastUsedAt DateTime?
-  createdAt  DateTime  @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action     String
+  resource   String
+  resourceId String?
+  ip         String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action])
 }

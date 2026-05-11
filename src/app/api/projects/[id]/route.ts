@@ -1,6 +1,21 @@
 import { NextResponse } from "next/server";
 import { getOrCreateUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { updateProjectSchema, parseBody } from "@/lib/validators";
+import { logAudit } from "@/lib/audit";
+
+const projectSelect = {
+  id: true,
+  userId: true,
+  title: true,
+  description: true,
+  techStack: true,
+  repoUrl: true,
+  liveUrl: true,
+  imageUrl: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
 
 export async function PUT(
   req: Request,
@@ -13,27 +28,47 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-    const { title, description, techStack, repoUrl, liveUrl, imageUrl } = body;
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const parsed = parseBody(updateProjectSchema, body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
 
     const project = await db.project.findUnique({
       where: { id: params.id },
+      select: { id: true, userId: true },
     });
 
     if (!project || project.userId !== user.id) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
+    const updateData: Record<string, unknown> = {};
+    const { title, description, techStack, repoUrl, liveUrl, imageUrl } = parsed.data;
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (techStack !== undefined) updateData.techStack = techStack;
+    if (repoUrl !== undefined) updateData.repoUrl = repoUrl;
+    if (liveUrl !== undefined) updateData.liveUrl = liveUrl;
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+
     const updatedProject = await db.project.update({
       where: { id: params.id },
-      data: {
-        title: title ?? project.title,
-        description: description ?? project.description,
-        techStack: techStack ?? project.techStack,
-        repoUrl: repoUrl !== undefined ? (repoUrl || null) : project.repoUrl,
-        liveUrl: liveUrl !== undefined ? (liveUrl || null) : project.liveUrl,
-        imageUrl: imageUrl !== undefined ? (imageUrl || null) : project.imageUrl,
-      },
+      data: updateData,
+      select: projectSelect,
+    });
+
+    logAudit({
+      userId: user.id,
+      action: "project.updated",
+      resource: "Project",
+      resourceId: params.id,
     });
 
     return NextResponse.json(updatedProject);
@@ -56,6 +91,7 @@ export async function DELETE(
 
     const project = await db.project.findUnique({
       where: { id: params.id },
+      select: { id: true, userId: true },
     });
 
     if (!project || project.userId !== user.id) {
@@ -64,6 +100,13 @@ export async function DELETE(
 
     await db.project.delete({
       where: { id: params.id },
+    });
+
+    logAudit({
+      userId: user.id,
+      action: "project.deleted",
+      resource: "Project",
+      resourceId: params.id,
     });
 
     return NextResponse.json({ success: true });

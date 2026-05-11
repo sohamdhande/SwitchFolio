@@ -41,3 +41,43 @@ export function generateInitialRanks(count: number): string[] {
   }
   return ranks;
 }
+
+/**
+ * Checks if a computed midpoint rank is valid (strictly between a and b).
+ * Returns false when rank exhaustion has occurred and a rebalance is needed.
+ */
+export function needsRebalance(newRank: string, rankA: string, rankB: string): boolean {
+  return newRank <= rankA || newRank >= rankB;
+}
+
+/**
+ * Assigns evenly distributed ranks across all items in order.
+ * Use this when rank exhaustion is detected (two adjacent ranks
+ * with no valid string between them).
+ */
+export function rebalanceRanks<T extends { id: string }>(
+  items: T[]
+): Array<T & { lexoRank: string }> {
+  if (items.length === 0) return [];
+
+  const step = Math.floor(ALPHABET.length / (items.length + 1));
+  const safeStep = Math.max(step, 1);
+
+  return items.map((item, index) => {
+    // Build a rank string from evenly spaced positions
+    const position = safeStep * (index + 1);
+    let rank: string;
+
+    if (position < ALPHABET.length) {
+      rank = ALPHABET[position];
+    } else {
+      // If we exceed the single-char space, use two-char ranks
+      const first = Math.floor(index / ALPHABET.length);
+      const second = index % ALPHABET.length;
+      rank = ALPHABET[Math.min(first, ALPHABET.length - 1)] + ALPHABET[second];
+    }
+
+    return { ...item, lexoRank: rank };
+  });
+}
+

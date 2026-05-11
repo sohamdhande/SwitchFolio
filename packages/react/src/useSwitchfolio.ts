@@ -18,6 +18,18 @@ export function useSwitchfolio(options: SwitchfolioOptions): SwitchfolioResult {
   useEffect(() => {
     let cancelled = false
 
+    // Validate required arguments before making a network request
+    if (!apiKey || !username || !viewSlug) {
+      const missing = [
+        !apiKey && "apiKey",
+        !username && "username",
+        !viewSlug && "viewSlug",
+      ].filter(Boolean).join(", ")
+      setError(`Missing required argument: ${missing}`)
+      setLoading(false)
+      return
+    }
+
     const fetchProjects = async () => {
       setLoading(true)
       setError(null)
