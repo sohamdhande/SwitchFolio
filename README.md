@@ -18,10 +18,11 @@ Every time you apply for a different role — frontend, ML, full-stack — you w
 
 Switchfolio decouples your **project data** from your **portfolio design**:
 
-1. **Add your projects once** — title, description, tech stack, links, and images.
-2. **Create "views"** — curated subsets tailored for each audience (e.g., `frontend-interviews`, `ml-roles`, `hackathon-showcase`).
-3. **Toggle & reorder** — show, hide, and drag-to-rank projects per view.
-4. **Fetch via SDK** — your portfolio reads from Switchfolio's API. Changes reflect instantly, no rebuild needed.
+1. **Sign up** — we auto-provision your first view and API key instantly.
+2. **Add your projects once** — title, description, tech stack, links, and images.
+3. **Create "views"** — curated subsets tailored for each audience (e.g., `frontend-interviews`, `ml-roles`, `hackathon-showcase`).
+4. **Toggle & reorder** — show, hide, and drag-to-rank projects per view.
+5. **Fetch via SDK** — your portfolio reads from Switchfolio's API. Changes reflect instantly, no rebuild needed.
 
 ```
 ┌─────────────┐       ┌─────────────┐       ┌─────────────┐

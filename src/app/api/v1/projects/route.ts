@@ -8,9 +8,9 @@ import { Redis } from "@upstash/redis";
 // (allows local dev to work without Redis)
 const ratelimit = process.env.UPSTASH_REDIS_REST_URL
   ? new Ratelimit({
-      redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(30, "60 s"),
-    })
+    redis: Redis.fromEnv(),
+    limiter: Ratelimit.slidingWindow(30, "60 s"),
+  })
   : null;
 
 function corsHeaders(origin?: string): Record<string, string> {
