@@ -18,6 +18,7 @@ model User {
   projects       Project[]
   apiKeys        ApiKey[]
   auditLogs      AuditLog[]
+  setupComplete  Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
