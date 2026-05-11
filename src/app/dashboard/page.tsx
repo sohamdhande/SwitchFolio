@@ -51,8 +51,11 @@ export default async function DashboardRoot() {
     },
   ];
 
-  const isNewUser =
-    projectCount === 0 && viewCount === 0 && keyCount === 0;
+  const isNewUser = projectCount === 0 && viewCount === 0 && keyCount === 0;
+
+  if (!user.setupComplete && projectCount === 0) {
+    redirect("/dashboard/setup");
+  }
 
   return (
     <div className="p-8 space-y-8">
@@ -65,6 +68,12 @@ export default async function DashboardRoot() {
           Here&apos;s an overview of your portfolio.
         </p>
       </div>
+
+      {(!user.setupComplete && projectCount > 0) && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-300 px-4 py-3 rounded-lg text-sm">
+          Your API key was shown during setup. Go to Settings to generate a new one.
+        </div>
+      )}
 
       {/* Empty state for brand-new users */}
       {isNewUser && (

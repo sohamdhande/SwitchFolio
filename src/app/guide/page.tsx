@@ -62,11 +62,11 @@ export default function GuidePage() {
           </div>
           <p className="text-xs text-gray-400 dark:text-zinc-500 mb-6">~2 min read</p>
           <ol className="space-y-4 list-decimal pl-5 text-gray-700 dark:text-gray-300">
-            <li><strong>Sign up</strong> at switchfolio.app to create your account.</li>
+            <li><strong>Sign up</strong> at switchfolio.app. We instantly auto-provision your first API Key and a default View.</li>
+            <li><strong>Copy your credentials</strong> from the Quick Setup screen.</li>
             <li><strong>Add your projects</strong> (title, description, tech stack, links) in the master Projects tab.</li>
-            <li><strong>Create a View</strong> for a specific audience (e.g. &quot;Frontend Interviews&quot;).</li>
+            <li><strong>Create additional Views</strong> for specific audiences (e.g. &quot;Frontend Interviews&quot;).</li>
             <li><strong>Toggle visibility</strong> and drag to reorder projects specifically for that view.</li>
-            <li><strong>Generate an API key</strong>, install the SDK in your frontend, and fetch your tailored portfolio instantly!</li>
           </ol>
           <SectionFeedback />
         </section>
@@ -84,7 +84,7 @@ export default function GuidePage() {
               Skip the manual steps. Paste this prompt into Cursor, Windsurf, or any agentic IDE and it will integrate Switchfolio into your portfolio automatically.
             </p>
             <p className="text-sm font-medium text-amber-800 dark:text-amber-400 mb-4">
-              Note: Replace MY_USERNAME and MY_VIEW_SLUG with your actual values from the Switchfolio dashboard.
+              Note: You can copy your exact setup block (with your actual API key, username, and view slug) from the Quick Setup screen.
             </p>
             
             <CodeBlock code={`Integrate Switchfolio into this portfolio project.
@@ -92,20 +92,18 @@ export default function GuidePage() {
 1. Install the SDK:
    npm install @switchfolio/react
 
-2. Add to .env.local:
-   NEXT_PUBLIC_SWITCHFOLIO_KEY=sk_live_xxxx
-   (I will provide the actual key)
+2. Add your Switchfolio API key to .env.local:
+   NEXT_PUBLIC_SWITCHFOLIO_KEY="your_api_key_here"
 
 3. Find where projects are currently rendered in this codebase.
-   Replace the static/hardcoded project data with the useSwitchfolio hook:
+   Replace the static/hardcoded project data with the useSwitchfolio hook (use the exact snippet provided in your Quick Setup screen):
 
    import { useSwitchfolio } from '@switchfolio/react'
 
    const { data, loading, error } = useSwitchfolio({
      apiKey: process.env.NEXT_PUBLIC_SWITCHFOLIO_KEY!,
-     username: 'MY_USERNAME',
-     viewSlug: 'MY_VIEW_SLUG',
-     baseUrl: 'https://switchfolio.app'
+     username: "your_username",
+     viewSlug: "your_view_slug"
    })
 
 4. Map over data using the existing project card component — 
@@ -200,6 +198,7 @@ Only replace the data source for the projects section.`} />
             API keys allow your frontend application to securely read your portfolio data. Navigate to <strong>Settings</strong> to manage them.
           </p>
           <ul className="space-y-2 list-disc pl-5 text-gray-700 dark:text-gray-300">
+            <li><strong>Auto-Provisioned:</strong> Your first API key is automatically generated when you complete the Quick Setup after signup.</li>
             <li><strong>One-time Reveal:</strong> When you generate a new key, copy it immediately. For security reasons, it will never be shown again.</li>
             <li><strong>Storage:</strong> Store your API key safely in your frontend&apos;s environment variables (e.g., <code>.env.local</code> as <code>NEXT_PUBLIC_SWITCHFOLIO_KEY</code>).</li>
             <li><strong>Revocation:</strong> If a key is compromised, you can delete it instantly from the dashboard to cut off access.</li>
@@ -317,11 +316,11 @@ Authorization: Bearer sk_live_xxxx`} />
 }`}
           />
           <ul className="space-y-2 list-disc pl-5 text-gray-700 dark:text-gray-300 mt-6">
-            <li><strong>Cache Behavior:</strong> The API responds with a <code>Cache-Control: s-maxage=60, stale-while-revalidate</code> header.</li>
+            <li><strong>Cache Behavior:</strong> The API responds with a <code>Cache-Control: public, s-maxage=3600, stale-while-revalidate=86400</code> header.</li>
             <li><strong>401 Unauthorized:</strong> Invalid or missing API key.</li>
-            <li><strong>403 Forbidden:</strong> Key is valid, but does not have access to this user.</li>
+            <li><strong>403 Forbidden:</strong> Key is valid, but does not have access to this user (or lacks <code>read:projects</code> permission, or origin is blocked).</li>
             <li><strong>404 Not Found:</strong> User or View slug does not exist.</li>
-            <li><strong>429 Too Many Requests:</strong> Rate limit exceeded (100 req/min).</li>
+            <li><strong>429 Too Many Requests:</strong> Rate limit exceeded (30 req/min).</li>
           </ul>
           <SectionFeedback />
         </section>
